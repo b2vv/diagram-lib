@@ -1,0 +1,32 @@
+//// 1. Include functions first (so you can manipulate colors, SVGs, calc, etc)
+@import "~bootstrap/scss/functions";
+
+//// 2. Include any default variable overrides here
+// Example: $primary: #ff5733;
+
+//// 3. Include remainder of required Bootstrap stylesheets
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/variables-dark";
+@import "~bootstrap/scss/maps";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";
+
+//// 4. Include any optional Bootstrap modal-com as you like
+@import "~bootstrap/scss/root";
+@import "~bootstrap/scss/reboot";
+
+//// 5. Add additional custom code here
+@import "~bootstrap/scss/close";
+@import "~bootstrap/scss/modal";
+
+//// Helpers
+@import "~bootstrap/scss/helpers";
+
+//// Utilities
+@import "~bootstrap/scss/utilities/api";
+@import "~bootstrap/scss/vendor/rfs";
+
+// Custom styles
+.modal {
+  display: block;
+}
