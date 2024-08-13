@@ -1,10 +1,9 @@
 {
   "name": "diagram-lib",
-  "private": true,
   "version": "0.0.1",
   "type": "module",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
+  "main": "dist/es/index.js",
+  "module": "dist/umd/index.js",
   "types": "dist/src/*",
   "scripts": {
     "dev": "vite",
@@ -17,6 +16,10 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/b2vv/diagram-lib.git"
+  },
   "dependencies": {
     "@floating-ui/react": "^0.26.20",
     "bootstrap": "^5.3.3",
