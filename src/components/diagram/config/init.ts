@@ -19,6 +19,7 @@ export function initDiagram(id: string, $: Builder, event?: Event): Diagram {
         initialLayoutCompleted: (e: go.DiagramEvent) => {
             e.diagram.nodes.each((node) => {
                 console.log('Node render: ', node.data.name, node.data.key);
+                node.position.set(new go.Point(node.data.metaInfo.x, node.data.metaInfo.y));
             });
             event?.onRenderComplete?.(false);
         },

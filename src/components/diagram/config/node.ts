@@ -20,7 +20,7 @@ function changeOpacityButtons(node: NodeDiagram, buttonNames: ButtonsKey[], opac
     }
 }
 
-export const getNodeTemplate = ($: Builder, diagram: MutableRefObject<IRefType>, buttons: ButtonEvent) => {
+export const getNodeTemplate = ($: Builder, setNode: (node: go.Node) => void, buttons: ButtonEvent) => {
     const existKeys = iconsButtons.filter((name) => buttons[name]);
 
     return (
@@ -87,7 +87,7 @@ export const getNodeTemplate = ($: Builder, diagram: MutableRefObject<IRefType>,
                         opacity: 0,  // initially not visible
                         click: (_e, button) => {
                             if (button.part) {
-                                diagram.current.currentNode = button.part as NodeDiagram;
+                                setNode(button.part as NodeDiagram)
                                 buttons[name]?.(button.part.data);
                             }
                         }

@@ -1,36 +1,46 @@
-import { defineConfig } from 'vite';
+import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import svgr from 'vite-plugin-svgr';
 import glsl from 'vite-plugin-glsl';
-import dts from 'vite-plugin-dts';
+import {createStyleImportPlugin} from 'vite-plugin-style-import';
 
 export default defineConfig({
+    css: {
+        preprocessorOptions: {
+            sass: {
+                javascriptEnabled: true
+            }
+        }
+    },
     plugins: [
         react(),
         glsl(),
         svgr(),
-        dts({
-            tsconfigPath: './tsconfig.build.json'
+        createStyleImportPlugin({
+            libs: [
+                {
+                    libraryName: 'antd',
+                    esModule: true,
+                    resolveStyle: (name) => `antd/es/${name}/style/index`
+                }
+            ]
         })
     ],
     build: {
         lib: {
             entry: path.resolve(__dirname, 'src/index.ts'),
-            name: 'diagram-lib',
-            fileName: (format) => `${format}/index.js`,
+            name: 'tidy',
+            fileName: (format) => {
+                if (format === 'es') {
+                    return 'tidy.es.mjs';
+                }
+
+                return `tidy.${format}.js`;
+            }
         },
         rollupOptions: {
-            external: [
-                'react',
-                'react-dom'
-            ],
-            output: {
-                globals: {
-                    react: 'React',
-                    'react-dom': 'ReactDOM'
-                }
-            }
+            external: ['react']
         }
     },
     resolve: {
