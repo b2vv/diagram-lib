@@ -5,34 +5,34 @@ import {Disposable} from '../dispose';
 type Transaction = (tree: Node) => void;
 
 export class TreeRepository extends Disposable {
-    private nodes: Map<number, Node> = new Map();
+    private nodes: Map<string, Node> = new Map();
     private transaction!: Transaction;
 
-    public addNode(node: Node, parentId?: number): void {
-        if (parentId !== undefined) {
-            const parentNode = this.nodes.get(parentId);
+    public addNode(node: Node, parentExId?: string): void {
+        if (parentExId !== undefined) {
+            const parentNode = this.nodes.get(parentExId);
             if (parentNode) {
                 parentNode.children.push(node);
-                node.parentId = parentId;
+                node.parentExId = parentExId;
             } else {
-                throw new Error(`Parent node with ID ${parentId} not found`);
+                throw new Error(`Parent node with ID ${parentExId} not found`);
             }
         }
-        this.nodes.set(node.id!, node);
+        this.nodes.set(node.externalId!, node);
         this.commit();
     }
 
-    public removeNode(nodeId: number): Node | null {
+    public removeNode(nodeId: string): Node | null {
         const node = this.nodes.get(nodeId);
         if (!node) {
             return null;
         }
 
         // Remove node from its parent's children if it has a parent
-        if (node.parentId !== undefined) {
-            const parentNode = this.nodes.get(node.parentId);
+        if (node.parentExId !== undefined) {
+            const parentNode = this.nodes.get(node.parentExId);
             if (parentNode) {
-                parentNode.children = parentNode.children.filter((child) => child.id !== nodeId);
+                parentNode.children = parentNode.children.filter((child) => child.externalId !== nodeId);
             }
         }
 
@@ -46,37 +46,37 @@ export class TreeRepository extends Disposable {
     }
 
     private removeChildren(node: Node): void {
-        node.children.forEach((child) => {
-            this.nodes.delete(child.id!);
+        node.children?.forEach((child) => {
+            this.nodes.delete(child.externalId!);
             this.removeChildren(child);
         });
         node.children = [];
     }
 
-    public getChildren(nodeId: number): Node[] {
+    public getChildren(nodeId: string): Node[] {
         const node = this.nodes.get(nodeId);
         return node ? node.children : [];
     }
 
-    public removeLink(nodeId: number): Node | null {
+    public removeLink(nodeId: string): Node | null {
         const node = this.nodes.get(nodeId);
-        if (!node || node.parentId === undefined) {
+        if (!node || node.parentExId === undefined) {
             return null;
         }
 
-        const parentNode = this.nodes.get(node.parentId);
+        const parentNode = this.nodes.get(node.parentExId);
         if (parentNode) {
-            parentNode.children = parentNode.children.filter((child) => child.id !== nodeId);
+            parentNode.children = parentNode.children.filter((child) => child.externalId !== nodeId);
         }
         this.commit();
-        node.parentId = undefined;
+        node.parentExId = undefined;
         return node;
     }
 
     public initTree(rootNode: Node): void {
-        const traverse = (node: Node, parentId?: number): void => {
-            this.addNode(node, parentId);
-            node.children.forEach((child) => traverse(child, node.id));
+        const traverse = (node: Node, parentExId?: string): void => {
+            this.addNode(node, parentExId);
+            node.children?.forEach((child) => traverse(child, node.externalId));
         };
         traverse(rootNode);
         this.commit();
@@ -90,14 +90,14 @@ export class TreeRepository extends Disposable {
     private generateTree(nodes: Node[]): Node {
         // First, map all nodes by their IDs
         nodes.forEach((node) => {
-            this.nodes.set(node.id!, {...node, children: []});
+            this.nodes.set(node.externalId!, {...node, children: []});
         });
 
         // Then, link child nodes to their parents
         nodes.forEach((node) => {
-            if (node.parentId !== undefined && node.parentId !== null) {
-                const parentNode = this.nodes.get(node.parentId);
-                const currentNode = this.nodes.get(node.id!);
+            if (node.parentExId !== undefined && node.parentExId !== null) {
+                const parentNode = this.nodes.get(node.parentExId);
+                const currentNode = this.nodes.get(node.externalId!);
                 if (parentNode && currentNode) {
                     parentNode.children.push(currentNode);
                 }
@@ -107,7 +107,7 @@ export class TreeRepository extends Disposable {
         // Finally, collect and return root nodes (nodes without a parent)
         const rootNodes: Node[] = [];
         this.nodes.forEach((node) => {
-            if (node.parentId === undefined || node.parentId === null) {
+            if (node.parentExId === undefined || node.parentExId === null) {
                 rootNodes.push(node);
             }
         });
@@ -115,7 +115,7 @@ export class TreeRepository extends Disposable {
         return rootNodes[0];
     }
 
-    private commit() {
+    public commit() {
         this.transaction(this.generateTree(Array.from(this.nodes.values())));
     }
 

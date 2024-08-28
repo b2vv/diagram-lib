@@ -8,7 +8,7 @@ export enum LayoutTypeStr {
 
 export function getLayoutType(type?: LayoutTypeStr) {
     if (type == null) {
-        return LayoutType.Tidy;
+        return LayoutType.TidyTidy;
     }
 
     switch (type) {

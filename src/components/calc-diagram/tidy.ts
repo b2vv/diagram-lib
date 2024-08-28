@@ -22,6 +22,19 @@ export function initWasm(
     return promise;
 }
 
+interface BezierCurveShape {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    cpx1: number;
+    cpy1: number;
+    cpx2: number;
+    cpy2: number;
+}
+
+export type DocumentDimension = [topX: number, topY: number, bottomY: number, bottomY: number];
+
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export interface Node {
     id?: number;
@@ -30,9 +43,16 @@ export interface Node {
     width: number;
     height: number;
     parentId?: number;
+    parentExId?: string;
     x: number;
     y: number;
     children: Node[];
+}
+
+interface Line {
+    from: string;
+    to: string;
+    coord: BezierCurveShape;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -57,7 +77,7 @@ const NULL_ID = () => {
 export class TidyLayout extends Disposable {
     private tidy: TidyWasm;
     private nextId = 1;
-    private root: InnerNode | undefined;
+    public root: InnerNode | undefined;
     private idToNode: Map<number, InnerNode> = new Map();
 
     public static async create(
@@ -110,6 +130,48 @@ export class TidyLayout extends Disposable {
         }
     }
 
+    public recalculateX() {
+        this.adjustXByMin();
+    }
+
+    public getSize(): DocumentDimension {
+        const bottomX = this.findMaxCoord('x');
+        const bottomY = this.findMaxCoord('y');
+
+        return [0, 0, bottomX, bottomY]
+    }
+
+    private findMinCoord(key: 'x' | 'y' = 'x'): number {
+        let min: number | undefined = undefined;
+
+        this.idToNode.forEach(node => {
+            if (min === undefined || node[key] < min) {
+                min = node[key];
+            }
+        });
+        return min !== undefined ? min : 0;
+    }
+
+    private findMaxCoord(key: 'x' | 'y' = 'x'): number {
+        let max: number | undefined = undefined;
+
+        this.idToNode.forEach(node => {
+            if (max === undefined || node[key] > max) {
+                max = node[key];
+            }
+        });
+
+        return max !== undefined ? max : 0;
+    }
+
+    private adjustXByMin(): void {
+        const minX = Math.abs(this.findMinCoord());
+
+        this.idToNode.forEach(node => {
+            node.x = node.x + minX + node.width;
+        });
+    }
+
     public update() {
         const removedNodeId = new Set(this.idToNode.keys());
         visit(this.root!, (node) => {
@@ -143,7 +205,10 @@ export class TidyLayout extends Disposable {
         const parents: number[] = [];
         while (stack.length) {
             const node = stack.pop()!;
-            if (node.id == null) {
+            if (!node) {
+                continue;
+            }
+            if (typeof node?.id === undefined || node?.id == null) {
                 node.id = this.nextId++;
             }
 
@@ -160,7 +225,7 @@ export class TidyLayout extends Disposable {
             }
 
             if (!node.height) {
-                node.height = defWidth!;
+                node.height = defHeight!;
             }
 
             width.push(node.width);
@@ -186,4 +251,107 @@ export class TidyLayout extends Disposable {
 
         return this.root;
     }
+
+    public getLines(): Line[] {
+        return buildLine(this.root);
+    }
+
+    public getLinesByView(viewPort: DocumentDimension): Line[] {
+        return buildLine(this.root, [], viewPort);
+    }
+
+    public getNodes() {
+        return Array.from(this.idToNode.values());
+    }
+
+    public getNodesByView(viewPort: DocumentDimension) {
+        const [topX, topY, bottomX, bottomY] = viewPort;
+        const arr = [];
+
+        for (const idToNodeElement of this.idToNode) {
+            const [,item] = idToNodeElement;
+            const cond =
+                item.x > topX &&
+                item.x < bottomX &&
+                item.y > topY &&
+                item.y < bottomY;
+                if (cond) {
+                    arr.push(item);
+                }
+        }
+        return arr
+    }
+}
+
+function buildLine(parent: InnerNode, lines: Line[] = [], viewPort?: DocumentDimension): Line[] {
+    for (const child of parent?.children ?? []) {
+        const coord = getBezierCurveShape(parent, child);
+        if (!viewPort) {
+            lines.push({
+                from: parent.externalId,
+                to: child.externalId,
+                coord,
+            });
+        } else if (isInCube(coord, viewPort)) {
+
+            lines.push({
+                from: (parent as any).externalId,
+                to: (child as any).externalId,
+                coord,
+            });
+        }
+        // Рекурсивний виклик для обходу дитини
+        buildLine(child, lines, viewPort);
+    }
+
+    return lines;
+}
+
+function isInCube(line: BezierCurveShape, viewPort: DocumentDimension): boolean {
+    if (isPointInCube(line.x1, line.y1, viewPort)) {
+        return true;
+    }
+    if (isPointInCube(line.cpx1, line.cpy1, viewPort)) {
+        return true;
+    }
+    if (isPointInCube(line.cpx2, line.cpy2, viewPort)) {
+        return true;
+    }
+    if (isPointInCube(line.x2, line.y2, viewPort)) {
+        return true;
+    }
+
+    if (crossLine(line.cpx1, line.cpy1, line.cpx2, line.cpy2, viewPort) || crossLine(line.cpx2, line.cpy2, line.cpx1, line.cpy1,  viewPort)) {
+        return true;
+    }
+
+    return false;
+}
+
+function crossLine(x1: number, y1: number, x2: number, y2: number, viewPort: DocumentDimension): boolean {
+    const [topX, topY, bottomX, bottomY] = viewPort;
+    return x1 < topX && x2 > bottomX && y1 > topY && y2 < bottomY;
+
+}
+
+function isPointInCube(x: number, y: number, viewPort: DocumentDimension): boolean {
+    const [topX, topY, bottomX, bottomY] = viewPort;
+
+    return x > topX && y > topY && bottomX > x && bottomY > y;
+}
+
+function getBezierCurveShape(
+    parent: InnerNode,
+    child: InnerNode,
+): BezierCurveShape {
+    return {
+        x1: parent.x,
+        y1: parent.y + parent.height,
+        x2: child.x,
+        y2: child.y,
+        cpx1: parent.x,
+        cpy1: (child.y + parent.y + parent.height) / 2,
+        cpx2: child.x,
+        cpy2: (child.y + parent.y + parent.height) / 2,
+    };
 }

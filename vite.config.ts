@@ -6,26 +6,26 @@ import glsl from 'vite-plugin-glsl';
 import {createStyleImportPlugin} from 'vite-plugin-style-import';
 
 export default defineConfig({
-    css: {
-        preprocessorOptions: {
-            sass: {
-                javascriptEnabled: true
-            }
-        }
-    },
+    // css: {
+    //     preprocessorOptions: {
+    //         sass: {
+    //             javascriptEnabled: true
+    //         }
+    //     }
+    // },
     plugins: [
         react(),
         glsl(),
         svgr(),
-        createStyleImportPlugin({
-            libs: [
-                {
-                    libraryName: 'antd',
-                    esModule: true,
-                    resolveStyle: (name) => `antd/es/${name}/style/index`
-                }
-            ]
-        })
+        // createStyleImportPlugin({
+        //     libs: [
+        //         {
+        //             libraryName: 'antd',
+        //             esModule: true,
+        //             resolveStyle: (name) => `antd/es/${name}/style/index`
+        //         }
+        //     ]
+        // })
     ],
     build: {
         lib: {

@@ -1,7 +1,6 @@
 import React, {SetStateAction} from 'react';
 
 import {IModalSettings, IModalsEvent} from '../types';
-import {PortalComponent} from '@src/components/portal';
 
 export type IComponentProps<T> = IModalsEvent & T;
 
@@ -38,10 +37,13 @@ export function useModal<T>(modal: IModal<T>, theme: 'dark' | 'light' = 'light')
     }, [close, handleClose]);
 
     const modalElem = React.useMemo(() => (
-        <PortalComponent handleClose={close} theme={theme}>
+        <>
             <Element {...props} {...events} handleClose={closeHandle} />
-            <div className='modal-backdrop fade show' />
-        </PortalComponent>
+        </>
+        // <PortalComponent handleClose={close} theme={theme}>
+        //     <Element {...props} {...events} handleClose={closeHandle} />
+        //     <div className='modal-backdrop fade show' />
+        // </PortalComponent>
     ), [Element, close, closeHandle, events, props, theme]);
 
     return {

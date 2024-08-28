@@ -1,4 +1,4 @@
-import go, {Diagram} from 'gojs';
+import go, {Diagram} from 'gojs/release/go-debug';
 
 import {Builder, ConfirmType, RenderedType, DragEvent, INodeData} from '../types';
 import styleTheme from './style-theme';
@@ -7,7 +7,13 @@ interface Event {
     onConfirm?: ConfirmType;
     onRenderComplete?: RenderedType;
     onLinkChanged?: DragEvent;
+    setViewPortDimension?: any;
 }
+
+let isDragging = false;
+let firstLoad = true;
+let dim = [];
+
 
 export function initDiagram(id: string, $: Builder, event?: Event): Diagram {
     const diagram = $(go.Diagram, id, {
@@ -18,11 +24,15 @@ export function initDiagram(id: string, $: Builder, event?: Event): Diagram {
         // initialAutoScale: go.AutoScale.UniformToFill,
         initialLayoutCompleted: (e: go.DiagramEvent) => {
             e.diagram.nodes.each((node) => {
-                console.log('Node render: ', node.data.name, node.data.key);
-                node.position.set(new go.Point(node.data.metaInfo.x, node.data.metaInfo.y));
+                node.position = new go.Point(node.data.x - (node.data.width / 2), node.data.y);
             });
-            event?.onRenderComplete?.(false);
+            if (firstLoad) {
+                firstLoad = false;
+                setViewPortDimension();
+            }
+            diagram.scrollToRect( new go.Rect(...dim));
         },
+         'animationManager.isEnabled': false,
         'linkingTool.isEnabled': false, // отключить стандартное связывание
         'linkingTool.direction': go.LinkingDirection.ForwardsOnly, // позволить связывание только вперед
         'dragSelectingTool.isEnabled': true, // включить выбор перетаскиванием
@@ -31,6 +41,53 @@ export function initDiagram(id: string, $: Builder, event?: Event): Diagram {
     });
 
     diagram.addDiagramListener('SelectionMoved', dragNode);
+
+    window.diagram = diagram;
+
+
+    const container = document.getElementById(id);
+
+    // Handle mousedown event
+    container.addEventListener('mousedown', (event) => {
+        isDragging = true;
+    });
+
+    let timer: number = 0;
+    container.addEventListener('mousemove', () => {
+        if (isDragging) {
+            clearTimeout(timer);
+            timer = setTimeout(setViewPortDimension, 300);
+        }
+    });
+
+    // Handle mouseup event
+
+    container.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    function setViewPortDimension() {
+        const viewportBounds = diagram.viewportBounds;
+
+        const topX = viewportBounds.x;
+        const topY = viewportBounds.y;
+        const bottomX = viewportBounds.x + viewportBounds.width;
+        const bottomY = viewportBounds.y + viewportBounds.height;
+
+        dim = [
+            viewportBounds.x,
+            viewportBounds.y,
+            viewportBounds.width,
+            viewportBounds.height,
+        ]
+
+        event?.setViewPortDimension((prev) => {
+            if (prev[0] === topX && prev[3] === bottomY) {
+                return prev;
+            }
+            return [topX, topY, bottomX, bottomY];
+        });
+    }
 
     diagram.undoManager.isEnabled = false;
     diagram.themeManager.changesDivBackground = true;

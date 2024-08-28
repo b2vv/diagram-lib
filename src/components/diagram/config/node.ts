@@ -57,7 +57,13 @@ export const getNodeTemplate = ($: Builder, setNode: (node: go.Node) => void, bu
                                             new go.Panel(go.Panel.Horizontal, {row: 0})
                                                 .add(
                                                     new go.TextBlock({editable: false, minSize: new go.Size(10, 14)})
-                                                        .bindTwoWay('text', 'name')
+                                                        .bind(new go.Binding('text', 'extraData', function(extra) {
+                                                            return extra.name; // Отримуємо значення для відображення
+                                                        })
+                                                        .makeTwoWay(function(text, data) {
+                                                            return text;
+                                                        }))
+                                                        // .bindTwoWay('text', 'name')
                                                         .theme('stroke', 'text')
                                                         .theme('font', 'name')
                                                 ),
